@@ -58,7 +58,7 @@ const Sidebar = ({ children }) => {
           </label>
 
           {/* Brand */}
-          <div className="ml-2 flex items-center gap-3">
+          <Link href="/" className="ml-2 flex items-center gap-3">
 
             <img
               src="/images/Logo2.jpg"
@@ -79,7 +79,7 @@ const Sidebar = ({ children }) => {
               </p>
             </div>
 
-          </div>
+          </Link>
 
           {/* Date */}
           <div className="ml-auto rounded-lg bg-slate-50 px-3 py-1.5 text-sm text-slate-600">
