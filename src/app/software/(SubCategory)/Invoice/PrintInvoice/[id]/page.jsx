@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { Roboto_Condensed } from "next/font/google";
+
+
+const receiptFont = Roboto_Condensed({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 
 export default function PrintInvoicePage() {
@@ -33,7 +41,8 @@ export default function PrintInvoicePage() {
 
         if (!res.ok) {
           setError(
-            data.message || "Invoice not found"
+            data.message ||
+              "Invoice not found"
           );
           return;
         }
@@ -95,67 +104,135 @@ export default function PrintInvoicePage() {
     <>
 
       {/* =========================
-          PRINT CSS
+          POS PRINT CSS
       ========================= */}
 
       <style jsx global>{`
+
         @media print {
 
           @page {
-            size: A4 portrait;
-            margin: 12mm;
+            margin: 0;
           }
+
+
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+          }
+
 
           body * {
             visibility: hidden !important;
           }
+
 
           #print-memo,
           #print-memo * {
             visibility: visible !important;
           }
 
-          #print-memo {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
 
-            width: 100% !important;
-            max-width: none !important;
+          #print-memo {
+            position: fixed !important;
+
+            top: 0 !important;
+            left: 0 !important;
+
+            width: 80mm !important;
+            max-width: 80mm !important;
+
+            min-height: 0 !important;
 
             margin: 0 !important;
-            padding: 0 !important;
+
+            padding: 3mm !important;
+
+            box-sizing: border-box !important;
+
+            background: white !important;
+
+            color: #000 !important;
 
             box-shadow: none !important;
+
+            border: none !important;
             border-radius: 0 !important;
           }
+
+
+          #print-memo,
+          #print-memo * {
+            color: #000 !important;
+
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
 
           .no-print {
             display: none !important;
           }
 
-          html,
-          body {
+
+          .receipt-table {
+            width: 100% !important;
+
+            table-layout: fixed !important;
+
+            border-collapse: collapse !important;
+          }
+
+
+          .receipt-table th,
+          .receipt-table td {
+            border-color: #000 !important;
+          }
+
+
+          .receipt-table thead {
             background: white !important;
           }
+
+
+          .receipt-table tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
         }
+
       `}</style>
 
 
       {/* =========================
-          PAGE
+          SCREEN
       ========================= */}
 
-      <main className="min-h-screen bg-slate-100 p-4 sm:p-5">
+      <main
+        className={`${receiptFont.className} min-h-screen bg-slate-100 py-5`}
+      >
 
 
-        {/* Print Button */}
-        <div className="no-print mx-auto mb-3 flex max-w-4xl justify-end">
+        {/* =========================
+            PRINT BUTTON
+        ========================= */}
+
+        <div
+          className="no-print mx-auto mb-3 flex justify-end"
+          style={{
+            width: "80mm",
+          }}
+        >
 
           <button
             type="button"
-            onClick={() => window.print()}
-            className="rounded-lg bg-sky-700 px-5 py-2 text-sm font-medium text-white hover:bg-sky-800"
+            onClick={() =>
+              window.print()
+            }
+            className="rounded-lg bg-sky-700 px-5 py-2 text-sm font-semibold text-white hover:bg-sky-800"
           >
             Print Invoice
           </button>
@@ -164,12 +241,17 @@ export default function PrintInvoicePage() {
 
 
         {/* =========================
-            ONLY THIS WILL PRINT
+            RECEIPT
         ========================= */}
 
         <div
           id="print-memo"
-          className="mx-auto max-w-4xl rounded-xl bg-white p-5 text-slate-900 shadow-sm sm:p-6"
+          className="mx-auto bg-white text-slate-950 shadow-sm"
+          style={{
+            width: "80mm",
+            padding: "3mm",
+            boxSizing: "border-box",
+          }}
         >
 
 
@@ -177,106 +259,110 @@ export default function PrintInvoicePage() {
               HEADER
           ========================= */}
 
-          <div className="text-center">
+          <header className="text-center">
 
-            <h1 className="text-2xl font-bold text-sky-700">
+            <h1 className="text-xl font-bold tracking-wide">
               SAKIN PHARMACY
             </h1>
 
-          </div>
+
+            <p className="mt-0.5 text-xs font-semibold">
+              SALES INVOICE
+            </p>
+
+          </header>
+
+
+          {/* Divider */}
+
+          <div className="my-2 border-t border-dashed border-slate-700" />
 
 
           {/* =========================
               INVOICE INFO
           ========================= */}
 
-          <div className="mt-5 flex items-center justify-between text-sm">
+          <div className="space-y-1 text-xs">
 
-            <p>
-              <span className="text-slate-500">
-                Invoice No:
-              </span>{" "}
+            <InfoRow
+              label="Invoice"
+              value={`#${invoice.invoiceNo}`}
+            />
 
-              <span className="font-bold text-slate-800">
-                {invoice.invoiceNo}
-              </span>
-            </p>
-
-
-            <p>
-              <span className="text-slate-500">
-                Date:
-              </span>{" "}
-
-              <span className="font-semibold">
-                {formatDate(invoice.date)}
-              </span>
-            </p>
+            <InfoRow
+              label="Date"
+              value={formatDate(
+                invoice.date
+              )}
+            />
 
           </div>
+
+
+          {/* Divider */}
+
+          <div className="my-2 border-t border-dashed border-slate-500" />
 
 
           {/* =========================
               CUSTOMER
           ========================= */}
 
-          <div className="mt-5 space-y-2 text-sm">
+          <div className="space-y-1 text-xs">
 
-            <p>
-              <span className="font-semibold">
-                Customer:
-              </span>{" "}
+            <InfoRow
+              label="Customer"
+              value={
+                invoice.customer?.name ||
+                "Retail Customer"
+              }
+            />
 
-              {invoice.customer?.name ||
-                "Retail Customer"}
-            </p>
 
-
-            <p>
-              <span className="font-semibold">
-                Phone:
-              </span>{" "}
-
-              {invoice.customer?.phone ||
-                "N/A"}
-            </p>
+            <InfoRow
+              label="Phone"
+              value={
+                invoice.customer?.phone ||
+                "-"
+              }
+            />
 
           </div>
 
 
           {/* =========================
-              MEDICINES
+              MEDICINE TABLE
           ========================= */}
 
-          <div className="mt-6 overflow-x-auto">
+          <div className="mt-3">
 
-            <table className="w-full border-collapse text-sm">
+            <table className="receipt-table w-full border-collapse">
 
-              <thead className="bg-sky-50">
+              <thead>
 
                 <tr>
 
-                  <Th>
+                  <Th className="w-6">
                     SL
                   </Th>
 
-                  <Th>
+                  <Th align="left">
                     Medicine
                   </Th>
 
-                  <Th>
+                  <Th className="w-8">
                     Qty
                   </Th>
 
-                  <Th>
+                  <Th className="w-12">
                     Rate
                   </Th>
 
-                  <Th>
-                    Dis %
+                  <Th className="w-9">
+                    Dis
                   </Th>
 
-                  <Th>
+                  <Th className="w-14">
                     Amount
                   </Th>
 
@@ -297,7 +383,7 @@ export default function PrintInvoicePage() {
                       </Td>
 
 
-                      <Td>
+                      <Td align="left">
                         {medicine.medicine}
                       </Td>
 
@@ -308,19 +394,23 @@ export default function PrintInvoicePage() {
 
 
                       <Td>
-                        {money(
+                        {compactMoney(
                           medicine.rate
                         )}
                       </Td>
 
 
                       <Td>
-                        {medicine.percentageDiscount || 0}%
+                        {Number(
+                          medicine.percentageDiscount ||
+                            0
+                        )}
+                        %
                       </Td>
 
 
                       <Td>
-                        {money(
+                        {compactMoney(
                           medicine.amount
                         )}
                       </Td>
@@ -341,7 +431,7 @@ export default function PrintInvoicePage() {
               CALCULATION
           ========================= */}
 
-          <div className="ml-auto mt-6 w-full max-w-sm">
+          <div className="mt-3 border-t border-dashed border-slate-700 pt-2">
 
             <AmountRow
               label="Total"
@@ -355,9 +445,14 @@ export default function PrintInvoicePage() {
             />
 
 
+            <div className="my-1 border-t border-slate-900" />
+
+
             <AmountRow
-              label="Payable Amount"
-              value={invoice.payableAmount}
+              label="PAYABLE"
+              value={
+                invoice.payableAmount
+              }
               bold
             />
 
@@ -368,23 +463,35 @@ export default function PrintInvoicePage() {
               FOOTER
           ========================= */}
 
-          <div className="mt-12 flex items-end justify-between text-xs">
+          <div className="mt-5">
 
-            <div className="w-40 border-t border-slate-500 pt-1 text-center">
-              Customer Signature
+            <div className="flex items-end justify-between gap-5 text-xs">
+
+              <div className="flex-1 border-t border-slate-700 pt-1 text-center">
+                Customer
+              </div>
+
+
+              <div className="flex-1 border-t border-slate-700 pt-1 text-center">
+                Seller
+              </div>
+
             </div>
 
 
-            <div className="w-40 border-t border-slate-500 pt-1 text-center">
-              Seller Signature
-            </div>
+            <div className="my-3 border-t border-dashed border-slate-500" />
+
+
+            <p className="text-center text-xs font-semibold">
+              Thank you for your purchase
+            </p>
+
+
+            <p className="mt-1 text-center text-xs">
+              Sakin Pharmacy
+            </p>
 
           </div>
-
-
-          <p className="mt-7 text-center text-xs text-slate-500">
-            Thank you for purchasing from Sakin Pharmacy.
-          </p>
 
 
         </div>
@@ -397,14 +504,52 @@ export default function PrintInvoicePage() {
 
 
 /* =========================
+   INFO ROW
+========================= */
+
+function InfoRow({
+  label,
+  value,
+}) {
+  return (
+
+    <div className="flex items-start justify-between gap-3">
+
+      <span className="font-semibold">
+        {label}:
+      </span>
+
+
+      <span className="text-right font-medium">
+        {value}
+      </span>
+
+    </div>
+
+  );
+}
+
+
+/* =========================
    TABLE HEAD
 ========================= */
 
-function Th({ children }) {
+function Th({
+  children,
+  align = "center",
+  className = "",
+}) {
   return (
-    <th className="border border-slate-300 px-3 py-2 text-center text-xs font-semibold">
+
+    <th
+      className={`border border-slate-700 px-1 py-1.5 text-xs font-bold leading-tight ${className}`}
+      style={{
+        textAlign: align,
+      }}
+    >
       {children}
     </th>
+
   );
 }
 
@@ -413,11 +558,22 @@ function Th({ children }) {
    TABLE DATA
 ========================= */
 
-function Td({ children }) {
+function Td({
+  children,
+  align = "center",
+}) {
   return (
-    <td className="border border-slate-300 px-3 py-2 text-center text-sm">
+
+    <td
+      className="border border-slate-600 px-1 py-1.5 text-xs font-medium leading-tight"
+      style={{
+        textAlign: align,
+        wordBreak: "break-word",
+      }}
+    >
       {children}
     </td>
+
   );
 }
 
@@ -432,11 +588,12 @@ function AmountRow({
   bold = false,
 }) {
   return (
+
     <div
-      className={`flex items-center justify-between border-b border-slate-200 py-2 text-sm ${
+      className={`flex items-center justify-between py-1 ${
         bold
-          ? "font-bold text-sky-700"
-          : ""
+          ? "text-sm font-bold"
+          : "text-xs font-semibold"
       }`}
     >
 
@@ -444,11 +601,18 @@ function AmountRow({
         {label}
       </span>
 
-      <span>
+
+      <span
+        style={{
+          fontVariantNumeric:
+            "tabular-nums",
+        }}
+      >
         {money(value)}
       </span>
 
     </div>
+
   );
 }
 
@@ -465,15 +629,40 @@ function money(value) {
 
 
 /* =========================
+   TABLE MONEY
+========================= */
+
+function compactMoney(value) {
+
+  const number =
+    Number(value || 0);
+
+
+  if (
+    Number.isInteger(number)
+  ) {
+    return number;
+  }
+
+
+  return number.toFixed(2);
+}
+
+
+/* =========================
    DATE
 ========================= */
 
 function formatDate(date) {
+
   if (!date) {
-    return "N/A";
+    return "-";
   }
+
 
   return new Date(
     date
-  ).toLocaleDateString("en-GB");
+  ).toLocaleDateString(
+    "en-GB"
+  );
 }
