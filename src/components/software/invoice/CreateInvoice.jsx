@@ -29,6 +29,7 @@ export default function Invoice() {
   };
 
 
+
   // ================= CUSTOMER =================
 
   const [customer, setCustomer] =
@@ -78,6 +79,7 @@ export default function Invoice() {
   );
 
 
+
   // ================= MEDICINE INPUT =================
 
   const updateItem = (e) => {
@@ -124,44 +126,76 @@ export default function Invoice() {
 
   // ================= SAVE =================
 
-  const saveInvoice = () => {
-
+  const saveInvoice = async () => {
     const data = {
       invoiceNo: invoiceInfo.number,
       date: invoiceInfo.date,
 
       customer,
 
-      medicines: rows.map(
-        (row, index) => ({
-          sl: index + 1,
-          medicine: row.medicine,
-          qty: Number(row.qty),
-          rate: Number(row.rate),
-
-          percentageDiscount:
-            Number(row.dis || 0),
-
-          amount:
-            getAmount(row),
-        })
-      ),
+      medicines: rows.map((row, index) => ({
+        sl: index + 1,
+        medicine: row.medicine,
+        qty: Number(row.qty),
+        rate: Number(row.rate),
+        percentageDiscount: Number(row.dis || 0),
+        amount: getAmount(row),
+      })),
 
       total,
       discount,
       payableAmount,
 
-      options,
+      options: {
+        sms: options.sms,
+
+        ...(options.sms && {
+          smsType: options.smsType,
+        }),
+
+        print: options.print,
+        paid: options.paid,
+      },
     };
 
-    console.log(
-      "Invoice Data:",
-      data
-    );
+    console.log("Invoice Data:", data);
 
-    alert(
-      "Invoice saved successfully!"
-    );
+    try {
+      const res = await fetch("/api/software/invoices", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify(data),
+      });
+
+      const result = await res.json();
+
+      console.log("MongoDB Response:", result);
+
+      if (!res.ok) {
+        alert(result.message);
+        return;
+      }
+
+      alert("Invoice saved successfully!");
+
+      // ================= RESET =================
+      setCustomer(emptyCustomer);
+      setItem(emptyMedicine);
+      setRows([]);
+      setPayable("");
+      setOptions(defaultOptions);
+
+      nextId = 1;
+
+    } catch (error) {
+      console.error("Save Invoice Error:", error);
+
+      alert("Failed to save invoice");
+    }
   };
 
 
@@ -546,9 +580,7 @@ export default function Invoice() {
 
               <div className="flex flex-wrap items-center gap-5">
 
-
-                {/* SMS */}
-
+                {/* sms */}
                 <CheckBox
                   label="SMS"
                   checked={options.sms}
@@ -560,51 +592,33 @@ export default function Invoice() {
                   }
                 />
 
-
-                {/* SMS Short / Long */}
-
                 {options.sms && (
-
                   <div className="flex rounded-lg bg-white p-1">
-
                     <OptionButton
-                      active={
-                        options.smsType ===
-                        "short"
-                      }
+                      active={options.smsType === "short"}
                       onClick={() =>
                         setOptions({
                           ...options,
-                          smsType:
-                            "short",
+                          smsType: "short",
                         })
                       }
                     >
                       Short
                     </OptionButton>
 
-
                     <OptionButton
-                      active={
-                        options.smsType ===
-                        "long"
-                      }
+                      active={options.smsType === "long"}
                       onClick={() =>
                         setOptions({
                           ...options,
-                          smsType:
-                            "long",
+                          smsType: "long",
                         })
                       }
                     >
                       Long
                     </OptionButton>
-
                   </div>
-
                 )}
-
-
                 {/* Print */}
 
                 <CheckBox
