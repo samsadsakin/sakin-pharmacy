@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 
 import {
   ActionButtons,
@@ -112,11 +113,72 @@ export default function ViewInvoicePage() {
   // DELETE
   // =========================
 
-  const handleDelete = (invoice) => {
-    console.log(
-      "Delete Invoice:",
-      invoice
-    );
+  const handleDelete = async (invoice) => {
+    const result = await Swal.fire({
+      title: "Delete Invoice?",
+      text: `Invoice #${invoice.invoiceNo} will be deleted permanently.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, Delete",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `/api/software/invoices/${invoice._id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        await Swal.fire({
+          title: "Failed",
+          text: data.message || "Failed to delete invoice",
+          icon: "error",
+        });
+
+        return;
+      }
+
+      // Remove from table without page refresh
+      setInvoices((prev) =>
+        prev.filter(
+          (item) => item._id !== invoice._id
+        )
+      );
+
+      // Close popup if this invoice is selected
+      if (selected?._id === invoice._id) {
+        setSelected(null);
+      }
+
+      await Swal.fire({
+        title: "Deleted!",
+        text: "Invoice deleted successfully.",
+        icon: "success",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+    } catch (error) {
+      console.error(
+        "Delete Invoice Error:",
+        error
+      );
+
+      await Swal.fire({
+        title: "Error",
+        text: "Something went wrong.",
+        icon: "error",
+      });
+    }
   };
 
 
@@ -125,9 +187,9 @@ export default function ViewInvoicePage() {
   // =========================
 
   const handlePrint = (invoice) => {
-    console.log(
-      "Print Invoice:",
-      invoice
+    window.open(
+      `/software/Invoice/PrintInvoice/${invoice._id}`,
+      "_blank"
     );
   };
 
