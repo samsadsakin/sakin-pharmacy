@@ -1,6 +1,8 @@
 import connectDB from "@/lib/mongodb";
 import Invoice from "@/models/invoice";
 
+export const runtime = "nodejs";
+
 
 // ================= POST =================
 
@@ -18,21 +20,30 @@ export async function POST(request) {
         message: "Invoice saved successfully",
         invoice,
       },
-      { status: 201 }
+      {
+        status: 201,
+      }
     );
+
   } catch (error) {
-    console.error("Invoice POST Error:", error);
+    console.error(
+      "Invoice POST Error:",
+      error
+    );
 
     return Response.json(
       {
         success: false,
-        message: error.message,
+        message:
+          error?.message ||
+          "Failed to save invoice",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
-
 
 // ================= GET =================
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 
 import {
   emptyCustomer,
@@ -17,9 +19,14 @@ import {
   OptionButton,
 } from "./InvoiceUtils";
 
+
 let nextId = 1;
 
+
 export default function Invoice() {
+
+  const router = useRouter();
+
 
   // ================= INVOICE =================
 
@@ -27,7 +34,6 @@ export default function Invoice() {
     number: "9967",
     date: "2026-08-11",
   };
-
 
 
   // ================= CUSTOMER =================
@@ -59,25 +65,23 @@ export default function Invoice() {
 
   // ================= CALCULATION =================
 
-  // Row percentage discount already applied here
   const total = rows.reduce(
     (sum, row) =>
       sum + getAmount(row),
     0
   );
 
-  // If payable is empty, payable = total
+
   const payableAmount =
     payable === ""
       ? total
       : Number(payable || 0);
 
-  // Final manual discount
+
   const discount = Math.max(
     total - payableAmount,
     0
   );
-
 
 
   // ================= MEDICINE INPUT =================
@@ -93,6 +97,7 @@ export default function Invoice() {
   // ================= ADD MEDICINE =================
 
   const addMedicine = () => {
+
     if (
       !item.medicine ||
       !item.qty ||
@@ -100,6 +105,7 @@ export default function Invoice() {
     ) {
       return;
     }
+
 
     setRows([
       ...rows,
@@ -109,116 +115,296 @@ export default function Invoice() {
       },
     ]);
 
+
     setItem(emptyMedicine);
   };
 
 
-  // ================= DELETE =================
+  // ================= DELETE MEDICINE =================
 
   const deleteMedicine = (id) => {
+
     setRows(
       rows.filter(
         (row) => row.id !== id
       )
     );
+
+  };
+
+
+  // ================= RESET =================
+
+  const resetInvoice = () => {
+
+    setCustomer(emptyCustomer);
+
+    setItem(emptyMedicine);
+
+    setRows([]);
+
+    setPayable("");
+
+    setOptions(defaultOptions);
+
+    nextId = 1;
+
   };
 
 
   // ================= SAVE =================
 
   const saveInvoice = async () => {
-    const data = {
-      invoiceNo: invoiceInfo.number,
-      date: invoiceInfo.date,
 
+    // Print option save হওয়ার আগে মনে রাখছি
+    const shouldPrint =
+      options.print;
+
+
+    const data = {
+
+      invoiceNo:
+        invoiceInfo.number,
+
+      date:
+        invoiceInfo.date,
+
+
+      // Customer
       customer,
 
-      medicines: rows.map((row, index) => ({
-        sl: index + 1,
-        medicine: row.medicine,
-        qty: Number(row.qty),
-        rate: Number(row.rate),
-        percentageDiscount: Number(row.dis || 0),
-        amount: getAmount(row),
-      })),
 
+      // Medicines
+      medicines: rows.map(
+        (row, index) => ({
+
+          sl:
+            index + 1,
+
+          medicine:
+            row.medicine,
+
+          qty:
+            Number(row.qty),
+
+          rate:
+            Number(row.rate),
+
+          percentageDiscount:
+            Number(row.dis || 0),
+
+          amount:
+            getAmount(row),
+
+        })
+      ),
+
+
+      // Calculation
       total,
+
       discount,
+
       payableAmount,
 
-      options: {
-        sms: options.sms,
 
+      // Options
+      options: {
+
+        sms:
+          options.sms,
+
+
+        // SMS true হলেই smsType save হবে
         ...(options.sms && {
-          smsType: options.smsType,
+          smsType:
+            options.smsType,
         }),
 
-        print: options.print,
-        paid: options.paid,
+
+        print:
+          options.print,
+
+        paid:
+          options.paid,
+
       },
+
     };
 
-    console.log("Invoice Data:", data);
+
+    console.log(
+      "Invoice Data:",
+      data
+    );
+
 
     try {
-      const res = await fetch("/api/software/invoices", {
-        method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-        },
+      // =========================
+      // POST TO MONGODB
+      // =========================
 
-        body: JSON.stringify(data),
-      });
+      const res = await fetch(
+        "/api/software/invoices",
+        {
+          method: "POST",
 
-      const result = await res.json();
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
 
-      console.log("MongoDB Response:", result);
+          body:
+            JSON.stringify(data),
+        }
+      );
+
+
+      const result =
+        await res.json();
+
+
+      console.log(
+        "MongoDB Response:",
+        result
+      );
+
+
+      // =========================
+      // SAVE FAILED
+      // =========================
 
       if (!res.ok) {
-        alert(result.message);
+
+        await Swal.fire({
+          title: "Failed",
+          text:
+            result.message ||
+            "Failed to save invoice",
+          icon: "error",
+        });
+
+        return;
+
+      }
+
+
+      // =========================
+      // CREATED INVOICE ID
+      // =========================
+
+      const invoiceId =
+        result.invoice?._id;
+
+
+      if (!invoiceId) {
+
+        await Swal.fire({
+          title: "Error",
+          text:
+            "Invoice saved but Invoice ID not found",
+          icon: "error",
+        });
+
+        return;
+
+      }
+
+
+      // =========================
+      // RESET FORM
+      // =========================
+
+      resetInvoice();
+
+
+      // =========================
+      // PRINT TRUE
+      // =========================
+
+      if (shouldPrint) {
+
+        await Swal.fire({
+          title: "Saved!",
+          text:
+            "Invoice saved successfully",
+          icon: "success",
+          timer: 700,
+          showConfirmButton: false,
+        });
+
+
+        // Newly created invoice ID
+        router.push(
+          `/software/Invoice/PrintInvoice/${invoiceId}`
+        );
+
+
         return;
       }
 
-      alert("Invoice saved successfully!");
 
-      // ================= RESET =================
-      setCustomer(emptyCustomer);
-      setItem(emptyMedicine);
-      setRows([]);
-      setPayable("");
-      setOptions(defaultOptions);
+      // =========================
+      // PRINT FALSE
+      // =========================
 
-      nextId = 1;
+      await Swal.fire({
+        title: "Saved!",
+        text:
+          "Invoice saved successfully",
+        icon: "success",
+        timer: 1200,
+        showConfirmButton: false,
+      });
+
 
     } catch (error) {
-      console.error("Save Invoice Error:", error);
 
-      alert("Failed to save invoice");
+      console.error(
+        "Save Invoice Error:",
+        error
+      );
+
+
+      await Swal.fire({
+        title: "Error",
+        text:
+          "Failed to save invoice",
+        icon: "error",
+      });
+
     }
+
   };
 
 
   // ================= UI =================
 
   return (
+
     <main className="min-h-screen bg-slate-50 p-4 text-slate-700 md:p-6">
 
       <div className="mx-auto max-w-6xl rounded-xl bg-white p-5 shadow-sm md:p-6">
 
-        {/* Title */}
+
+        {/* =========================
+            TITLE
+        ========================= */}
+
         <h1 className="mb-5 text-center text-xl font-semibold text-sky-700">
           Create Invoice
         </h1>
 
 
-        {/* =================
+        {/* =========================
             INVOICE NO / DATE
-        ================= */}
+        ========================= */}
 
         <div className="mb-6 flex items-center justify-between text-sm">
 
           <p>
+
             <span className="text-slate-500">
               Invoice No:
             </span>{" "}
@@ -226,10 +412,12 @@ export default function Invoice() {
             <span className="font-semibold text-sky-800">
               {invoiceInfo.number}
             </span>
+
           </p>
 
 
           <p>
+
             <span className="text-slate-500">
               Date:
             </span>{" "}
@@ -237,19 +425,23 @@ export default function Invoice() {
             <span className="font-medium text-slate-700">
               {invoiceInfo.date}
             </span>
+
           </p>
 
         </div>
 
 
-        {/* =================
+        {/* =========================
             CUSTOMER
-        ================= */}
+        ========================= */}
 
         <div className="mb-6 space-y-3">
 
+
           <div className="grid gap-3 md:grid-cols-2">
 
+
+            {/* Name */}
             <Field
               label="Name"
               placeholder="Customer Name"
@@ -257,12 +449,14 @@ export default function Invoice() {
               onChange={(e) =>
                 setCustomer({
                   ...customer,
-                  name: e.target.value,
+                  name:
+                    e.target.value,
                 })
               }
             />
 
 
+            {/* More Info */}
             <Field
               label="More Info"
               placeholder="More Information"
@@ -276,9 +470,11 @@ export default function Invoice() {
               }
             />
 
+
           </div>
 
 
+          {/* Phone */}
           <Field
             label="Phone Number"
             placeholder="Phone Number"
@@ -286,17 +482,19 @@ export default function Invoice() {
             onChange={(e) =>
               setCustomer({
                 ...customer,
-                phone: e.target.value,
+                phone:
+                  e.target.value,
               })
             }
           />
 
+
         </div>
 
 
-        {/* =================
+        {/* =========================
             MEDICINE TABLE
-        ================= */}
+        ========================= */}
 
         <div className="overflow-x-auto rounded-xl shadow-sm ring-1 ring-slate-100">
 
@@ -311,25 +509,31 @@ export default function Invoice() {
                   SL
                 </Th>
 
+
                 <Th>
                   Medicine
                 </Th>
+
 
                 <Th className="text-right">
                   Qty
                 </Th>
 
+
                 <Th className="text-right">
                   Rate
                 </Th>
+
 
                 <Th className="text-right">
                   Dis %
                 </Th>
 
+
                 <Th className="text-right">
                   Amount
                 </Th>
+
 
                 <Th className="text-center">
                   Action
@@ -341,6 +545,7 @@ export default function Invoice() {
 
 
             <tbody>
+
 
               {!rows.length ? (
 
@@ -365,21 +570,26 @@ export default function Invoice() {
                       className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
                     >
 
+
+                      {/* SL */}
                       <Td className="text-center text-slate-400">
                         {index + 1}
                       </Td>
 
 
+                      {/* Medicine */}
                       <Td className="font-medium">
                         {row.medicine}
                       </Td>
 
 
+                      {/* Qty */}
                       <Td className="text-right">
                         {row.qty}
                       </Td>
 
 
+                      {/* Rate */}
                       <Td className="text-right">
                         {money(
                           row.rate
@@ -387,11 +597,13 @@ export default function Invoice() {
                       </Td>
 
 
+                      {/* Discount */}
                       <Td className="text-right">
                         {row.dis || 0}%
                       </Td>
 
 
+                      {/* Amount */}
                       <Td className="text-right font-semibold text-sky-800">
                         {money(
                           getAmount(row)
@@ -399,6 +611,7 @@ export default function Invoice() {
                       </Td>
 
 
+                      {/* Delete */}
                       <Td className="text-center">
 
                         <button
@@ -415,12 +628,14 @@ export default function Invoice() {
 
                       </Td>
 
+
                     </tr>
 
                   )
                 )
 
               )}
+
 
             </tbody>
 
@@ -429,25 +644,29 @@ export default function Invoice() {
         </div>
 
 
-        {/* =================
+        {/* =========================
             BOTTOM
-        ================= */}
+        ========================= */}
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
 
 
-          {/* =================
+          {/* =========================
               ADD MEDICINE
-          ================= */}
+          ========================= */}
 
           <section>
+
             <h3 className="mb-3 text-sm font-semibold text-slate-700">
               Add Medicine
             </h3>
 
+
             <div className="rounded-xl bg-sky-50 p-4">
 
+
               <div className="space-y-3">
+
 
                 {/* Medicine */}
                 <Input
@@ -457,8 +676,10 @@ export default function Invoice() {
                   onChange={updateItem}
                 />
 
-                {/* Qty + Rate + Dis */}
+
+                {/* Qty + Rate + Discount */}
                 <div className="grid grid-cols-3 gap-3">
+
 
                   <Input
                     type="number"
@@ -468,6 +689,7 @@ export default function Invoice() {
                     onChange={updateItem}
                   />
 
+
                   <Input
                     type="number"
                     name="rate"
@@ -475,6 +697,7 @@ export default function Invoice() {
                     value={item.rate}
                     onChange={updateItem}
                   />
+
 
                   <Input
                     type="number"
@@ -484,10 +707,13 @@ export default function Invoice() {
                     onChange={updateItem}
                   />
 
+
                 </div>
 
               </div>
 
+
+              {/* Add Button */}
               <button
                 type="button"
                 onClick={addMedicine}
@@ -496,20 +722,22 @@ export default function Invoice() {
                 + Add Medicine
               </button>
 
+
             </div>
+
           </section>
 
 
-          {/* =================
+          {/* =========================
               RIGHT SIDE
-          ================= */}
+          ========================= */}
 
           <section>
 
 
-            {/* =================
+            {/* =========================
                 CALCULATION
-            ================= */}
+            ========================= */}
 
             <div className="rounded-xl bg-slate-50 p-4">
 
@@ -521,24 +749,21 @@ export default function Invoice() {
               <div className="space-y-3">
 
 
-                {/* Total - Locked */}
-
+                {/* Total */}
                 <LockedField
                   label="Total"
                   value={money(total)}
                 />
 
 
-                {/* Discount - Auto + Locked */}
-
+                {/* Discount */}
                 <LockedField
                   label="Discount"
                   value={money(discount)}
                 />
 
 
-                {/* Payable Amount - Editable */}
-
+                {/* Payable */}
                 <div className="flex items-center justify-between gap-4">
 
                   <span className="text-sm font-semibold text-slate-700">
@@ -562,14 +787,15 @@ export default function Invoice() {
 
                 </div>
 
+
               </div>
 
             </div>
 
 
-            {/* =================
+            {/* =========================
                 OPTIONS
-            ================= */}
+            ========================= */}
 
             <div className="mt-3 rounded-xl bg-sky-50 p-4">
 
@@ -580,7 +806,11 @@ export default function Invoice() {
 
               <div className="flex flex-wrap items-center gap-5">
 
-                {/* sms */}
+
+                {/* =================
+                    SMS
+                ================= */}
+
                 <CheckBox
                   label="SMS"
                   checked={options.sms}
@@ -592,34 +822,55 @@ export default function Invoice() {
                   }
                 />
 
+
+                {/* Short / Long */}
                 {options.sms && (
+
                   <div className="flex rounded-lg bg-white p-1">
+
+
                     <OptionButton
-                      active={options.smsType === "short"}
+                      active={
+                        options.smsType ===
+                        "short"
+                      }
                       onClick={() =>
                         setOptions({
                           ...options,
-                          smsType: "short",
+                          smsType:
+                            "short",
                         })
                       }
                     >
                       Short
                     </OptionButton>
 
+
                     <OptionButton
-                      active={options.smsType === "long"}
+                      active={
+                        options.smsType ===
+                        "long"
+                      }
                       onClick={() =>
                         setOptions({
                           ...options,
-                          smsType: "long",
+                          smsType:
+                            "long",
                         })
                       }
                     >
                       Long
                     </OptionButton>
+
+
                   </div>
+
                 )}
-                {/* Print */}
+
+
+                {/* =================
+                    PRINT
+                ================= */}
 
                 <CheckBox
                   label="Print"
@@ -633,7 +884,9 @@ export default function Invoice() {
                 />
 
 
-                {/* Paid */}
+                {/* =================
+                    PAID
+                ================= */}
 
                 <CheckBox
                   label="Paid"
@@ -646,14 +899,15 @@ export default function Invoice() {
                   }
                 />
 
+
               </div>
 
             </div>
 
 
-            {/* =================
+            {/* =========================
                 SAVE
-            ================= */}
+            ========================= */}
 
             <button
               type="button"
@@ -664,7 +918,9 @@ export default function Invoice() {
               Save Invoice
             </button>
 
+
           </section>
+
 
         </div>
 

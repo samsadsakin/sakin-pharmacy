@@ -1,12 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+
 import {
   usePathname,
   useRouter,
 } from "next/navigation";
-
-import { useState } from "react";
 
 import {
   FaCartPlus,
@@ -25,7 +25,7 @@ export default function InvoiceNav() {
 
 
   // =========================
-  // NORMAL NAV ITEMS
+  // NAV ITEMS
   // =========================
 
   const items = [
@@ -66,17 +66,17 @@ export default function InvoiceNav() {
 
       const data = await res.json();
 
+
       if (!res.ok) {
         alert(
           data.message ||
             "Failed to load invoice"
         );
+
         return;
       }
 
 
-      // GET API latest-first হলে
-      // প্রথম invoice-টাই latest
       const latestInvoice =
         data.invoices?.[0];
 
@@ -87,7 +87,6 @@ export default function InvoiceNav() {
       }
 
 
-      // Client-side navigation
       router.push(
         `/software/Invoice/PrintInvoice/${latestInvoice._id}`
       );
@@ -124,7 +123,10 @@ export default function InvoiceNav() {
       <div className="flex gap-1 rounded-xl bg-white p-1.5 shadow-sm">
 
 
-        {/* Normal Navigation */}
+        {/* =========================
+            CREATE / INVOICES / SALES
+        ========================= */}
+
         {items.map(
           ({
             name,
@@ -140,15 +142,17 @@ export default function InvoiceNav() {
               <Link
                 key={name}
                 href={href}
-                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition ${
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs transition sm:gap-2 sm:px-4 sm:text-sm ${
                   active
                     ? "bg-blue-50 font-medium text-blue-700"
                     : "text-slate-500 hover:bg-slate-50"
                 }`}
               >
+
                 <Icon className="text-xs" />
 
                 {name}
+
               </Link>
             );
           }
@@ -156,24 +160,27 @@ export default function InvoiceNav() {
 
 
         {/* =========================
-            PRINT - ALWAYS VISIBLE
+            PRINT
+            HIDE ON MOBILE
         ========================= */}
 
         <button
           type="button"
           onClick={handleLatestPrint}
           disabled={printLoading}
-          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm transition ${
+          className={`hidden items-center gap-2 rounded-lg px-4 py-2 text-sm transition md:flex ${
             printActive
               ? "bg-blue-50 font-medium text-blue-700"
               : "text-slate-500 hover:bg-slate-50"
           } disabled:cursor-wait disabled:opacity-60`}
         >
+
           <FaPrint className="text-xs" />
 
           {printLoading
             ? "Loading..."
             : "Print"}
+
         </button>
 
       </div>
