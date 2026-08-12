@@ -101,12 +101,10 @@ export default function ViewInvoicePage() {
   // =========================
 
   const handleUpdate = (invoice) => {
-
     console.log(
       "Update Invoice:",
       invoice
     );
-
   };
 
 
@@ -115,12 +113,10 @@ export default function ViewInvoicePage() {
   // =========================
 
   const handleDelete = (invoice) => {
-
     console.log(
       "Delete Invoice:",
       invoice
     );
-
   };
 
 
@@ -129,23 +125,21 @@ export default function ViewInvoicePage() {
   // =========================
 
   const handlePrint = (invoice) => {
-
     console.log(
       "Print Invoice:",
       invoice
     );
-
   };
 
 
   return (
     <>
 
-      <div className="rounded-xl bg-white p-5 shadow-sm">
+      <div className="rounded-xl bg-white p-3 shadow-sm sm:p-5">
 
 
         {/* Title */}
-        <h1 className="mb-5 text-center text-xl font-semibold text-sky-700">
+        <h1 className="mb-4 text-center text-lg font-semibold text-sky-700 sm:text-xl">
           View Invoice
         </h1>
 
@@ -170,36 +164,42 @@ export default function ViewInvoicePage() {
         )}
 
 
-        {/* Main Table */}
+        {/* Table */}
         {!loading && !error && (
 
-          <div className="overflow-x-auto rounded-xl ring-1 ring-slate-100">
+          <div className="overflow-hidden rounded-xl ring-1 ring-slate-100">
 
             <table className="w-full table-fixed text-sm">
 
 
-              {/* Table Head */}
+              {/* Head */}
               <thead className="bg-sky-50 text-slate-700">
 
                 <tr>
 
-                  <Th className="text-center">
+                  {/* Date - Desktop Only */}
+                  <Th className="hidden md:table-cell">
                     Invoice Date
                   </Th>
 
-                  <Th className="text-center">
+
+                  <Th>
                     Inv No
                   </Th>
 
-                  <Th className="text-center">
+
+                  <Th>
                     Paid Amt
                   </Th>
 
-                  <Th className="text-center">
+
+                  {/* Medicine - Desktop Only */}
+                  <Th className="hidden md:table-cell">
                     Medicine
                   </Th>
 
-                  <Th className="text-center">
+
+                  <Th>
                     Action
                   </Th>
 
@@ -208,7 +208,7 @@ export default function ViewInvoicePage() {
               </thead>
 
 
-              {/* Table Body */}
+              {/* Body */}
               <tbody>
 
                 {!invoices.length ? (
@@ -217,7 +217,7 @@ export default function ViewInvoicePage() {
 
                     <td
                       colSpan={5}
-                      className="py-10 text-center text-slate-400"
+                      className="py-10 text-center text-sm text-slate-400"
                     >
                       No invoice found
                     </td>
@@ -235,8 +235,8 @@ export default function ViewInvoicePage() {
                       >
 
 
-                        {/* Date */}
-                        <Td className="text-center">
+                        {/* Date - Desktop Only */}
+                        <Td className="hidden md:table-cell">
                           {formatDate(
                             invoice.date
                           )}
@@ -244,27 +244,27 @@ export default function ViewInvoicePage() {
 
 
                         {/* Invoice No */}
-                        <Td className="text-center font-semibold text-sky-700">
+                        <Td className="font-semibold text-sky-700">
                           {invoice.invoiceNo}
                         </Td>
 
 
                         {/* Paid Amount */}
-                        <Td className="text-center font-medium">
+                        <Td className="font-medium">
                           {money(
                             invoice.payableAmount
                           )}
                         </Td>
 
 
-                        {/* Medicine Count */}
-                        <Td className="text-center">
+                        {/* Medicine - Desktop Only */}
+                        <Td className="hidden md:table-cell">
                           {invoice.medicines?.length || 0}
                         </Td>
 
 
                         {/* Action */}
-                        <Td className="text-center">
+                        <Td>
 
                           <ActionButtons
                             invoice={invoice}
@@ -295,7 +295,7 @@ export default function ViewInvoicePage() {
       </div>
 
 
-      {/* Medicine Popup */}
+      {/* View Popup */}
       {selected && (
 
         <MedicineModal
