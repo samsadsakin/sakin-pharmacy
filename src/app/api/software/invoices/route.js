@@ -40,22 +40,26 @@ export async function GET() {
   try {
     await connectDB();
 
-    const invoices = await Invoice.find()
-      .sort({ createdAt: -1 });
+    const invoices =
+      await Invoice.find()
+        .sort({
+          createdAt: -1,
+        });
 
     return Response.json({
       success: true,
       invoices,
     });
-  } catch (error) {
-    console.error("Invoice GET Error:", error);
 
+  } catch (error) {
     return Response.json(
       {
         success: false,
         message: error.message,
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

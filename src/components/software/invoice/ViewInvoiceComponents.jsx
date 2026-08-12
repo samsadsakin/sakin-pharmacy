@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 
 // =========================
@@ -10,12 +11,11 @@ export function ActionButtons({
   onView,
   onUpdate,
   onDelete,
-  onPrint,
 }) {
   return (
     <div className="flex items-center justify-center gap-2">
 
-      {/* View - Mobile + Desktop */}
+      {/* View */}
       <button
         type="button"
         onClick={() => onView(invoice)}
@@ -25,7 +25,7 @@ export function ActionButtons({
       </button>
 
 
-      {/* Desktop Only */}
+      {/* Update */}
       <button
         type="button"
         onClick={() => onUpdate(invoice)}
@@ -35,6 +35,7 @@ export function ActionButtons({
       </button>
 
 
+      {/* Delete */}
       <button
         type="button"
         onClick={() => onDelete(invoice)}
@@ -44,18 +45,17 @@ export function ActionButtons({
       </button>
 
 
-      <button
-        type="button"
-        onClick={() => onPrint(invoice)}
+      {/* Print */}
+      <Link
+        href={`/software/Invoice/PrintInvoice/${invoice._id}`}
         className="hidden rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 md:block"
       >
         Print
-      </button>
+      </Link>
 
     </div>
   );
 }
-
 
 // =========================
 // MEDICINE MODAL
