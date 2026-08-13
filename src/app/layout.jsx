@@ -4,7 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/webpage/Navbar";
 import { usePathname } from "next/navigation";
-
+import Link from "next/link";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -33,9 +33,9 @@ export default function RootLayout({ children }) {
 
           <div className="border-t border-emerald-100 py-3 text-center text-xs text-slate-500">
             © 2026 Sakin Pharmacy. All Rights Reserved. | Developed by{" "}
-            <span className="font-medium text-emerald-700">
-              Your Developer Name
-            </span>
+            <Link href="https://www.linkedin.com/in/samsad-sakin-24a86a3a3/" target="_blank" rel="noopener noreferrer" className="font-medium text-emerald-700">
+              Md.Samsad Sakin
+            </Link>
           </div>
 
         </div>

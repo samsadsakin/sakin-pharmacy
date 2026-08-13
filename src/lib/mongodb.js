@@ -7,12 +7,28 @@ dns.setServers([
 ]);
 
 const MONGODB_URI =
-  "mongodb+srv://samsadsakin:samsadsakin1A@sakin-pharmacy-db.ofoi5qb.mongodb.net/sakin_pharmacy?appName=Sakin-Pharmacy-DB";
+  process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  throw new Error(
+    "MONGODB_URI is missing"
+  );
+}
 
 export default async function connectDB() {
-  await mongoose.connect(MONGODB_URI);
+  if (
+    mongoose.connection.readyState === 1
+  ) {
+    return mongoose;
+  }
 
-  console.log("MongoDB Connected");
+  await mongoose.connect(
+    MONGODB_URI
+  );
+
+  console.log(
+    "MongoDB Connected"
+  );
 
   return mongoose;
 }
