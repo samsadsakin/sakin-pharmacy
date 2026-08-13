@@ -8,15 +8,18 @@ import {
 import {
   useRouter,
 } from "next/navigation";
+import Swal from "sweetalert2";
 
 import {
   FaPhone,
   FaUser,
+  FaLock,
+  FaEye,
+  FaEyeSlash,
 } from "react-icons/fa";
 
 
 export default function BeCustomerPage() {
-
   const router =
     useRouter();
 
@@ -31,6 +34,9 @@ export default function BeCustomerPage() {
   const [name, setName] =
     useState("");
 
+  const [password, setPassword] =
+    useState("");
+
   const [userInfo, setUserInfo] =
     useState(null);
 
@@ -43,8 +49,14 @@ export default function BeCustomerPage() {
   const [message, setMessage] =
     useState("");
 
-  const [success, setSuccess] =
-    useState("");
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
+  const [
+    forgotLoading,
+    setForgotLoading,
+  ] = useState(false);
 
 
   // =========================
@@ -63,18 +75,18 @@ export default function BeCustomerPage() {
   // =========================
 
   useEffect(() => {
-
     if (
       cleanMobile.length !== 11
     ) {
-
       setUserInfo(null);
 
       setName("");
 
+      setPassword("");
+
       setMessage("");
 
-      setSuccess("");
+      setChecking(false);
 
       return;
     }
@@ -83,14 +95,12 @@ export default function BeCustomerPage() {
     const timer =
       setTimeout(
         async () => {
-
           try {
-
             setChecking(true);
 
             setMessage("");
 
-            setSuccess("");
+            setPassword("");
 
 
             const res =
@@ -109,17 +119,12 @@ export default function BeCustomerPage() {
               await res.json();
 
 
-            // =========================
-            // ERROR
-            // =========================
-
             if (!res.ok) {
-
               setUserInfo(null);
 
               setMessage(
                 data.message ||
-                  "Unable to check mobile number"
+                "Unable to check mobile number"
               );
 
               return;
@@ -131,7 +136,6 @@ export default function BeCustomerPage() {
             // =========================
 
             if (!data.found) {
-
               setUserInfo({
                 found: false,
                 role: "customer",
@@ -160,7 +164,6 @@ export default function BeCustomerPage() {
 
 
           } catch (error) {
-
             console.error(
               "User Search Error:",
               error
@@ -173,9 +176,7 @@ export default function BeCustomerPage() {
 
 
           } finally {
-
             setChecking(false);
-
           }
 
         },
@@ -186,39 +187,180 @@ export default function BeCustomerPage() {
     return () =>
       clearTimeout(timer);
 
-
   }, [cleanMobile]);
 
 
   // =========================
-  // CUSTOMER STATUS
+  // USER TYPE
   // =========================
 
   const existingCustomer =
     userInfo?.found &&
     userInfo?.role ===
-      "customer";
+    "customer";
 
 
-  const nonCustomer =
+  const staffUser =
     userInfo?.found &&
     userInfo?.role !==
-      "customer";
+    "customer";
 
 
   // =========================
-  // BE A CUSTOMER
+  // FORGOT PASSWORD
+  // =========================
+
+  const handleForgotPassword = async () => {
+
+    if (cleanMobile.length !== 11) {
+
+      await Swal.fire({
+        title: "Invalid Mobile",
+        text: "Enter a valid mobile number first.",
+        icon: "warning",
+      });
+
+      return;
+    }
+
+
+    // =========================
+    // CONFIRM FIRST
+    // =========================
+
+    const confirm = await Swal.fire({
+
+      title: "Forgot Password?",
+
+      text: `Send a new 4-digit password to ${cleanMobile}?`,
+
+      icon: "question",
+
+      showCancelButton: true,
+
+      confirmButtonText: "Yes, Send Password",
+
+      cancelButtonText: "No",
+
+      reverseButtons: true,
+
+    });
+
+
+    // User clicked No
+    if (!confirm.isConfirmed) {
+      return;
+    }
+
+
+    try {
+
+      setForgotLoading(true);
+
+      setMessage("");
+
+
+      // =========================
+      // API CALL
+      // =========================
+
+      const res = await fetch(
+        "/api/auth/forgot-password",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            mobile: cleanMobile,
+          }),
+        }
+      );
+
+
+      const data = await res.json();
+
+
+      // =========================
+      // FAILED
+      // =========================
+
+      if (!res.ok) {
+
+        await Swal.fire({
+          title: "Failed",
+          text:
+            data.message ||
+            "Failed to send password.",
+          icon: "error",
+        });
+
+        return;
+      }
+
+
+      // Clear old entered password
+      setPassword("");
+
+
+      // =========================
+      // SUCCESS
+      // =========================
+
+      await Swal.fire({
+
+        title: "Password Sent!",
+
+        text:
+          "A new 4-digit password has been sent to your registered mobile number.",
+
+        icon: "success",
+
+        confirmButtonText: "OK",
+
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "Forgot Password Error:",
+        error
+      );
+
+
+      await Swal.fire({
+
+        title: "Error",
+
+        text:
+          "Something went wrong. Please try again.",
+
+        icon: "error",
+
+      });
+
+
+    } finally {
+
+      setForgotLoading(false);
+
+    }
+
+  };
+
+  // =========================
+  // SUBMIT
   // =========================
 
   const handleSubmit =
     async (e) => {
-
       e.preventDefault();
 
 
       setMessage("");
-
-      setSuccess("");
 
 
       // =========================
@@ -231,7 +373,6 @@ export default function BeCustomerPage() {
           "01"
         )
       ) {
-
         setMessage(
           "Enter a valid mobile number"
         );
@@ -241,13 +382,12 @@ export default function BeCustomerPage() {
 
 
       // =========================
-      // NAME VALIDATION
+      // NAME
       // =========================
 
       if (!name.trim()) {
-
         setMessage(
-          "Enter customer name"
+          "Enter your name"
         );
 
         return;
@@ -255,27 +395,45 @@ export default function BeCustomerPage() {
 
 
       // =========================
-      // NOT CUSTOMER
+      // STAFF LOGIN
       // =========================
 
-      if (nonCustomer) {
+      if (staffUser) {
+        if (!password) {
+          setMessage(
+            "Enter your password"
+          );
 
-        setMessage(
-          `This mobile belongs to a ${userInfo.role} account.`
-        );
+          return;
+        }
+
+
+        await handleStaffLogin();
 
         return;
       }
 
 
+      // =========================
+      // CUSTOMER
+      // =========================
+
+      await handleCustomer();
+
+    };
+
+
+  // =========================
+  // CUSTOMER CREATE / LOGIN
+  // =========================
+
+  const handleCustomer =
+    async () => {
       try {
-
         setSaving(true);
 
+        setMessage("");
 
-        // =========================
-        // CREATE / UPDATE CUSTOMER
-        // =========================
 
         const res =
           await fetch(
@@ -304,34 +462,10 @@ export default function BeCustomerPage() {
           await res.json();
 
 
-        // =========================
-        // STAFF DETECTED
-        // =========================
-
-        if (
-          data.action ===
-            "PASSWORD_REQUIRED" ||
-          data.action ===
-            "OTP_REQUIRED"
-        ) {
-
-          setMessage(
-            data.message
-          );
-
-          return;
-        }
-
-
-        // =========================
-        // ERROR
-        // =========================
-
         if (!res.ok) {
-
           setMessage(
             data.message ||
-              "Unable to continue"
+            "Unable to continue"
           );
 
           return;
@@ -339,67 +473,16 @@ export default function BeCustomerPage() {
 
 
         // =========================
-        // SUCCESS
-        // =========================
-
-        setUserInfo({
-          found: true,
-
-          name:
-            data.user.name,
-
-          mobile:
-            data.user.mobile,
-
-          role:
-            data.user.role,
-
-          staffVerified:
-            false,
-        });
-
-
-        setName(
-          data.user.name
-        );
-
-
-        if (data.created) {
-
-          setSuccess(
-            "Welcome! You are now a customer."
-          );
-
-        } else if (
-          data.updated
-        ) {
-
-          setSuccess(
-            "Customer name updated successfully."
-          );
-
-        } else {
-
-          setSuccess(
-            "Welcome back!"
-          );
-
-        }
-
-
-        // =========================
-        // REDIRECT TO HOME
+        // CUSTOMER LOGIN SUCCESS
+        // HOME
         // =========================
 
         router.replace("/");
 
         router.refresh();
 
-        return;
-
 
       } catch (error) {
-
         console.error(
           "Customer Error:",
           error
@@ -412,11 +495,104 @@ export default function BeCustomerPage() {
 
 
       } finally {
-
         setSaving(false);
-
       }
+    };
 
+
+  // =========================
+  // STAFF / ADMIN LOGIN
+  // =========================
+
+  const handleStaffLogin =
+    async () => {
+      try {
+        setSaving(true);
+
+        setMessage("");
+
+
+        const res =
+          await fetch(
+            "/api/auth/staff-login",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  mobile:
+                    cleanMobile,
+
+                  name:
+                    name.trim(),
+
+                  password,
+                }),
+            }
+          );
+
+
+        const data =
+          await res.json();
+
+
+        // =========================
+        // PASSWORD NOT SET
+        // =========================
+
+        if (
+          data.action ===
+          "PASSWORD_NOT_SET"
+        ) {
+          setMessage(
+            "Password is not set yet. Use Forgot Password to receive a new password."
+          );
+
+          return;
+        }
+
+
+        if (!res.ok) {
+          setMessage(
+            data.message ||
+            "Login failed"
+          );
+
+          return;
+        }
+
+
+        // =========================
+        // STAFF SUCCESS
+        // =========================
+
+        router.replace(
+          "/software/dashboard"
+        );
+
+        router.refresh();
+
+
+      } catch (error) {
+        console.error(
+          "Staff Login Error:",
+          error
+        );
+
+
+        setMessage(
+          "Something went wrong"
+        );
+
+
+      } finally {
+        setSaving(false);
+      }
     };
 
 
@@ -425,7 +601,6 @@ export default function BeCustomerPage() {
   // =========================
 
   return (
-
     <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
 
 
@@ -443,12 +618,18 @@ export default function BeCustomerPage() {
 
 
             <h1 className="text-2xl font-bold text-sky-700">
-              Be a Customer
+              {staffUser
+                ? "Welcome Back"
+                : "Be a Customer"}
             </h1>
 
 
             <p className="mt-1 text-sm text-slate-500">
-              Enter your mobile number to continue
+
+              {staffUser
+                ? "Enter your password to continue"
+                : "Enter your mobile number to continue"}
+
             </p>
 
 
@@ -493,7 +674,6 @@ export default function BeCustomerPage() {
                   }
 
                   onChange={(e) => {
-
                     const value =
                       e.target.value
                         .replace(
@@ -509,7 +689,6 @@ export default function BeCustomerPage() {
                     setMobile(
                       value
                     );
-
                   }}
 
                   placeholder="01XXXXXXXXX"
@@ -545,7 +724,11 @@ export default function BeCustomerPage() {
 
 
               <legend className="fieldset-legend">
-                Customer Name
+
+                {staffUser
+                  ? "Name"
+                  : "Customer Name"}
+
               </legend>
 
 
@@ -569,19 +752,18 @@ export default function BeCustomerPage() {
                   }
 
                   placeholder={
-                    cleanMobile.length === 11
+                    cleanMobile.length ===
+                      11
                       ? "Enter your name"
                       : "Enter mobile number first"
                   }
 
-                  autoComplete="name"
-
                   className="grow"
 
                   disabled={
-                    cleanMobile.length !== 11 ||
-                    checking ||
-                    nonCustomer
+                    cleanMobile.length !==
+                    11 ||
+                    checking
                   }
 
                   required
@@ -589,6 +771,18 @@ export default function BeCustomerPage() {
 
 
               </label>
+
+
+              {/* New Customer */}
+
+              {userInfo?.found ===
+                false && (
+
+                  <p className="mt-1 text-xs text-sky-600">
+                    New customer
+                  </p>
+
+                )}
 
 
               {/* Existing Customer */}
@@ -602,42 +796,23 @@ export default function BeCustomerPage() {
               )}
 
 
-              {/* New Customer */}
-
-              {userInfo?.found ===
-                false && (
-
-                <p className="mt-1 text-xs text-sky-600">
-                  New customer
-                </p>
-
-              )}
-
-
             </fieldset>
 
 
             {/* =========================
-                STAFF ACCOUNT
+                STAFF ROLE
             ========================= */}
 
-            {nonCustomer && (
+            {staffUser && (
 
-              <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
+              <div className="rounded-lg bg-sky-50 px-3 py-2">
 
-                This mobile number belongs
-                to a{" "}
+                <p className="text-xs text-slate-500">
+                  Account Type
+                </p>
 
-                <span className="font-semibold capitalize">
+                <p className="text-sm font-semibold capitalize text-sky-700">
                   {userInfo.role}
-                </span>{" "}
-
-                account.
-
-                <p className="mt-1 text-xs">
-                  Staff login will be
-                  available from the next
-                  authentication step.
                 </p>
 
               </div>
@@ -646,7 +821,111 @@ export default function BeCustomerPage() {
 
 
             {/* =========================
-                ERROR
+                PASSWORD
+                ONLY STAFF / ADMIN
+            ========================= */}
+
+            {staffUser && (
+
+              <fieldset className="fieldset">
+
+
+                <legend className="fieldset-legend">
+                  Password
+                </legend>
+
+
+                <label className="input input-bordered flex w-full items-center gap-2">
+
+
+                  <FaLock className="text-xs text-slate-400" />
+
+
+                  <input
+                    type={
+                      showPassword
+                        ? "text"
+                        : "password"
+                    }
+
+                    value={
+                      password
+                    }
+
+                    onChange={(e) =>
+                      setPassword(
+                        e.target.value
+                      )
+                    }
+
+                    placeholder="Enter 4-digit password"
+
+                    inputMode="numeric"
+
+                    autoComplete="current-password"
+
+                    maxLength={4}
+
+                    className="grow"
+
+                    required
+                  />
+
+
+                  <button
+                    type="button"
+
+                    onClick={() =>
+                      setShowPassword(
+                        (current) =>
+                          !current
+                      )
+                    }
+
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+
+                    {showPassword ? (
+                      <FaEyeSlash />
+                    ) : (
+                      <FaEye />
+                    )}
+
+                  </button>
+
+
+                </label>
+
+
+                {/* Forgot Password */}
+
+                <div className="mt-1 text-right">
+
+                  <button
+                    type="button"
+                    onClick={
+                      handleForgotPassword
+                    }
+                    disabled={
+                      forgotLoading
+                    }
+                    className="text-xs font-medium text-sky-700 hover:underline disabled:opacity-50"
+                  >
+                    {forgotLoading
+                      ? "Sending..."
+                      : "Forgot Password?"}
+                  </button>
+
+                </div>
+
+
+              </fieldset>
+
+            )}
+
+
+            {/* =========================
+                MESSAGE
             ========================= */}
 
             {message && (
@@ -654,21 +933,6 @@ export default function BeCustomerPage() {
               <div className="rounded-lg bg-red-50 px-3 py-2 text-center text-sm text-red-600">
 
                 {message}
-
-              </div>
-
-            )}
-
-
-            {/* =========================
-                SUCCESS
-            ========================= */}
-
-            {success && (
-
-              <div className="rounded-lg bg-emerald-50 px-3 py-2 text-center text-sm text-emerald-700">
-
-                {success}
 
               </div>
 
@@ -686,9 +950,12 @@ export default function BeCustomerPage() {
                 saving ||
                 checking ||
                 cleanMobile.length !==
-                  11 ||
+                11 ||
                 !name.trim() ||
-                nonCustomer
+                (
+                  staffUser &&
+                  !password
+                )
               }
 
               className="btn btn-info w-full text-white"
@@ -698,12 +965,14 @@ export default function BeCustomerPage() {
               {saving ? (
 
                 <>
-
                   <span className="loading loading-spinner loading-sm" />
 
                   Please wait...
-
                 </>
+
+              ) : staffUser ? (
+
+                "Login"
 
               ) : (
 
@@ -720,11 +989,8 @@ export default function BeCustomerPage() {
 
         </div>
 
-
       </div>
 
-
     </main>
-
   );
 }

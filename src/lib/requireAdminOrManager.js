@@ -5,16 +5,8 @@ import { verifySessionToken } from "@/lib/auth";
 import User from "@/models/user";
 
 
-// =========================
-// REQUIRE ADMIN
-// =========================
-
-export async function requireAdmin() {
+export async function requireAdminOrManager() {
   try {
-    // =========================
-    // GET SESSION COOKIE
-    // =========================
-
     const cookieStore =
       await cookies();
 
@@ -33,10 +25,6 @@ export async function requireAdmin() {
     }
 
 
-    // =========================
-    // VERIFY TOKEN
-    // =========================
-
     const session =
       await verifySessionToken(
         token
@@ -52,16 +40,8 @@ export async function requireAdmin() {
     }
 
 
-    // =========================
-    // CONNECT DATABASE
-    // =========================
-
     await connectDB();
 
-
-    // =========================
-    // GET FRESH USER
-    // =========================
 
     const user =
       await User.findById(
@@ -82,10 +62,6 @@ export async function requireAdmin() {
     }
 
 
-    // =========================
-    // ACTIVE CHECK
-    // =========================
-
     if (!user.isActive) {
       return {
         success: false,
@@ -95,25 +71,24 @@ export async function requireAdmin() {
     }
 
 
-    // =========================
-    // ADMIN CHECK
-    // =========================
+    const allowed =
+      [
+        "admin",
+        "manager",
+      ].includes(
+        user.role
+      );
 
-    if (
-      user.role !== "admin"
-    ) {
+
+    if (!allowed) {
       return {
         success: false,
         status: 403,
         message:
-          "Admin access required",
+          "Admin or Manager access required",
       };
     }
 
-
-    // =========================
-    // SUCCESS
-    // =========================
 
     return {
       success: true,
@@ -123,7 +98,7 @@ export async function requireAdmin() {
 
   } catch (error) {
     console.error(
-      "Require Admin Error:",
+      "Admin/Manager Check Error:",
       error
     );
 
@@ -133,7 +108,7 @@ export async function requireAdmin() {
       status: 500,
       message:
         error?.message ||
-        "Admin verification failed",
+        "Permission check failed",
     };
   }
 }

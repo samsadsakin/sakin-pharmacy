@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+
 import {
   useEffect,
   useState,
@@ -11,6 +12,7 @@ import {
   FaChartBar,
   FaCog,
   FaCapsules,
+  FaUsers,
 } from "react-icons/fa";
 
 import CountDate from "@/components/webpage/Date/Date";
@@ -22,10 +24,17 @@ const menuItems = [
     href: "/software/dashboard",
     icon: FaChartBar,
   },
+
   {
     name: "Create Invoice",
     href: "/software/Invoice",
     icon: FaCartPlus,
+  },
+
+  {
+    name: "View Users",
+    href: "/software/users",
+    icon: FaUsers,
   },
 ];
 
@@ -39,8 +48,10 @@ const Sidebar = ({ children }) => {
   const [user, setUser] =
     useState(null);
 
-  const [profileLoading, setProfileLoading] =
-    useState(true);
+  const [
+    profileLoading,
+    setProfileLoading,
+  ] = useState(true);
 
 
   // =========================
@@ -49,61 +60,64 @@ const Sidebar = ({ children }) => {
 
   useEffect(() => {
 
-    const getProfile = async () => {
+    const getProfile =
+      async () => {
 
-      try {
+        try {
 
-        const res = await fetch(
-          "/api/auth/me",
-          {
-            cache: "no-store",
+          const res =
+            await fetch(
+              "/api/auth/me",
+              {
+                cache:
+                  "no-store",
+              }
+            );
+
+
+          const data =
+            await res.json();
+
+
+          if (
+            res.ok &&
+            data.loggedIn
+          ) {
+
+            setUser(
+              data.user
+            );
+
+          } else {
+
+            setUser(
+              null
+            );
+
           }
-        );
 
 
-        const data =
-          await res.json();
+        } catch (error) {
 
-
-        if (
-          res.ok &&
-          data.loggedIn
-        ) {
-
-          setUser(
-            data.user
+          console.error(
+            "Sidebar Profile Error:",
+            error
           );
-
-        } else {
 
           setUser(
             null
           );
 
+
+        } finally {
+
+          setProfileLoading(
+            false
+          );
+
         }
 
-
-      } catch (error) {
-
-        console.error(
-          "Sidebar Profile Error:",
-          error
-        );
-
-        setUser(
-          null
-        );
-
-
-      } finally {
-
-        setProfileLoading(
-          false
-        );
-
-      }
-
-    };
+      };
 
 
     getProfile();
@@ -368,10 +382,6 @@ const Sidebar = ({ children }) => {
           <div className="border-t border-white/10 p-3">
 
 
-            {/* =========================
-                LOADING
-            ========================= */}
-
             {profileLoading ? (
 
               <div className="flex items-center gap-3 rounded-lg bg-white/10 p-2">
@@ -390,11 +400,6 @@ const Sidebar = ({ children }) => {
 
 
             ) : user ? (
-
-
-              /* =========================
-                  LOGGED USER
-              ========================= */
 
               <div
                 data-tip={user.name}
@@ -452,11 +457,6 @@ const Sidebar = ({ children }) => {
 
 
             ) : (
-
-
-              /* =========================
-                  NO LOGIN
-              ========================= */
 
               <div
                 data-tip="No Profile"

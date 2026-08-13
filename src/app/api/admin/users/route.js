@@ -1,68 +1,44 @@
-import connectDB from "@/lib/mongodb";
-import User from "@/models/User";
+import User from "@/models/user";
 
 import {
-  requireAdmin,
-} from "@/lib/requireAdmin";
+  requireAdminOrManager,
+} from "@/lib/requireAdminOrManager";
 
 
 export const runtime = "nodejs";
 
 
-// =========================
-// GET ALL USERS
-// =========================
-
 export async function GET() {
   try {
-    // =========================
-    // ADMIN CHECK
-    // =========================
 
+    // Admin + Manager
     const auth =
-      await requireAdmin();
+      await requireAdminOrManager();
 
 
     if (!auth.success) {
       return Response.json(
         {
           success: false,
-          message:
-            auth.message,
+          message: auth.message,
         },
         {
-          status:
-            auth.status,
+          status: auth.status,
         }
       );
     }
 
 
-    // =========================
-    // CONNECT DATABASE
-    // =========================
-
-    await connectDB();
-
-
-    // =========================
-    // GET USERS
-    // =========================
-
     const users =
       await User.find()
         .select(
-          "name mobile role staffVerified isActive createdAt updatedAt"
+          "name mobile role staffVerified isActive createdAt"
         )
         .sort({
           createdAt: -1,
         })
         .lean();
 
-
-    // =========================
-    // CLEAN RESPONSE
-    // =========================
 
     const formattedUsers =
       users.map(
@@ -87,19 +63,16 @@ export async function GET() {
 
           createdAt:
             user.createdAt,
-
-          updatedAt:
-            user.updatedAt,
         })
       );
 
 
-    // =========================
-    // SUCCESS
-    // =========================
-
     return Response.json({
       success: true,
+
+      currentUserRole:
+        auth.user.role,
+
       users:
         formattedUsers,
     });
@@ -115,7 +88,6 @@ export async function GET() {
     return Response.json(
       {
         success: false,
-
         message:
           error?.message ||
           "Failed to load users",
